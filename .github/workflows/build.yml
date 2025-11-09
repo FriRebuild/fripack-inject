@@ -166,7 +166,8 @@ jobs:
           cd build-$ARCH
           ../frida/configure --host=$ARCH -- -Dfrida-gum:devkits=gum,gumjs -Dfrida-core:compiler_backend=enabled -Dfrida-core:devkits=core
           FRIDA_OBJC_BRIDGE=disabled FRIDA_SWIFT_BRIDGE=disabled FRIDA_JAILBREAK=disabled FRIDA_V8=disabled make
-          python3 ../frida/releng/devkit.py frida-gumjs $ARCH build/devkits/gumjs
+          cd ../frida
+          python3 releng/devkit.py frida-gumjs $ARCH ../build-$ARCH/build/devkits/gumjs
           cd ..
         done
     
