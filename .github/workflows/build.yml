@@ -299,7 +299,7 @@ jobs:
           script: |
             try {
               const releaseVersion = '${{ needs.check_version.outputs.FRIDA_VERSION }}'
-              const repoName = ${{ github.repository }};
+              const repoName = "${{ github.repository }}";
               const releaseResponse = await github.repos.getReleaseByTag({
                 owner: repoName.split("/")[0],
                 repo: repoName.split("/")[1],

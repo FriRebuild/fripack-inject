@@ -12,7 +12,10 @@ target("fripack-inject")
     add_includedirs("./frida-gumjs-devkit", {public = true})
     add_linkdirs("./frida-gumjs-devkit/")
     add_links("frida-gumjs")
-
+    set_strip("all")
+    set_symbols("hidden")
+    set_optimize("smallest")
+    
     if is_plat("android") then
         add_syslinks("log")
     elseif is_plat("windows") then
