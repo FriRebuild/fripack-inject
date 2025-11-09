@@ -3,6 +3,7 @@ set_version("0.1.0")
 add_rules("plugin.compile_commands.autoupdate", {outputdir = "build"})
 
 add_requires("fmt")
+set_policy("build.optimization.lto", true)
 
 target("fripack-inject")
     set_kind("shared")
