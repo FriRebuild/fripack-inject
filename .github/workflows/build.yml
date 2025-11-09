@@ -280,6 +280,7 @@ jobs:
           
           ./configure --host=windows-${{ matrix.arch }} -- "-Dfrida-gum:devkits=gum,gumjs" "-Dfrida-gum:v8=disabled" "-Dfrida-gum:database=disabled" "-Dfrida-gum:tests=disabled" "-Dfrida-core:compiler_backend=enabled" "-Dfrida-core:devkits=core"
           ./make
+          cp .\subprojects\frida-gum\gum\gumenumtypes.h .\subprojects\frida-gum\bindings\gumjs\devkit\gumenumtypes.h
       - name: Check release version
         id: checkReleaseVersion
         uses: actions/github-script@v3
