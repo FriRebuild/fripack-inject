@@ -204,10 +204,10 @@ jobs:
     - name: Package and compress gumjs folders for Android
       shell: bash
       run: |
-        cd build-android-arm/subprojects/frida-gum/bindings/gumjs/devkit/gumjs-devkit && zip -9 -r ../gumjs-android-arm.zip . && cd -
-        cd build-android-arm64/subprojects/frida-gum/bindings/gumjs/devkit/gumjs-devkit && zip -9 -r ../gumjs-android-arm64.zip . && cd -
-        cd build-android-x86/subprojects/frida-gum/bindings/gumjs/devkit/gumjs-devkit && zip -9 -r ../gumjs-android-x86.zip . && cd -
-        cd build-android-x86_64/subprojects/frida-gum/bindings/gumjs/devkit/gumjs-devkit && zip -9 -r ../gumjs-android-x86_64.zip . && cd -
+        cd build-android-arm/subprojects/frida-gum/bindings/gumjs && zip -9 -r ../gumjs-android-arm.zip . && cd -
+        cd build-android-arm64/subprojects/frida-gum/bindings/gumjs && zip -9 -r ../gumjs-android-arm64.zip . && cd -
+        cd build-android-x86/subprojects/frida-gum/bindings/gumjs && zip -9 -r ../gumjs-android-x86.zip . && cd -
+        cd build-android-x86_64/subprojects/frida-gum/bindings/gumjs && zip -9 -r ../gumjs-android-x86_64.zip . && cd -
 
     - name: Upload android arm gumjs for Florida
       uses: actions/upload-release-asset@v1.0.2
