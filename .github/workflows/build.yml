@@ -264,11 +264,6 @@ jobs:
         with:
           msystem: ${{ matrix.sys }}
           install: ${{ matrix.pkg }}
-      - name: Install Go toolchain
-        uses: actions/setup-go@v5
-        # with:
-        #   go-version-file: ${{ env.FRIDA_COMPILER_MOD }}
-        #   cache-dependency-path: ${{ env.FRIDA_COMPILER_MOD }}
       - name: build frida for ${{ matrix.arch }}
         env:
           MSYS2_LOCATION: ${{ steps.msys2.outputs.msys2-location }}
@@ -283,7 +278,7 @@ jobs:
           }
           python tools/ensure-submodules.py frida-core
           
-          ./configure --host=windows-${{ matrix.arch }} -- -Dfrida-gum:devkits=gum,gumjs -Dfrida-gum:v8=disabled -Dfrida-gum:database=disabled -Dfrida-gum:tests=disabled -Dfrida-core:compiler_backend=enabled -Dfrida-core:devkits=core
+          ./configure --host=windows-${{ matrix.arch }} -- "-Dfrida-gum:devkits=gum,gumjs" "-Dfrida-gum:v8=disabled" "-Dfrida-gum:database=disabled" "-Dfrida-gum:tests=disabled" "-Dfrida-core:compiler_backend=enabled" "-Dfrida-core:devkits=core"
           ./make
           ./make install
       - name: Check release version
