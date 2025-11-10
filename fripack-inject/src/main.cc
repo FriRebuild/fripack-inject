@@ -9,6 +9,8 @@
 #include <thread>
 #include <vector>
 
+#include "utils.h"
+
 #ifdef __ANDROID__
 #include <android/log.h>
 #include <jni.h>
@@ -208,15 +210,15 @@ struct EmbeddedConfig {
   int32_t version = 1;
 
   int32_t data_size = 0;
-  int32_t data_offset = 0; // Offset from the start of this struct to data.
+  int32_t data_offset = 0; // Offset from the start of file.
   bool data_xz = false;    // Whether the data is compressed with xz.
 };
-#pragma pack(pop) 
+#pragma pack(pop)
 
 struct EmbeddedConfigData {
   enum class Mode : int32_t {
-    EmbeddedJs = 1,
-  } type;
+    EmbedJs = 1,
+  } mode;
   std::optional<std::string> js_filepath;
   std::optional<std::string> js_content;
 };
@@ -233,15 +235,27 @@ void _main() {
     return;
   }
 
-  if (auto res = rfl::json::read<EmbeddedConfigData>(
-          std::string(reinterpret_cast<const char *>(&g_embedded_config) +
-                          g_embedded_config.data_offset,
-                      g_embedded_config.data_size))) {
+#pragma optimize("", off)
+  auto mod = get_current_module_path();
+  std::ifstream file(mod, std::ios::binary);
+  if (!file.is_open()) {
+    logger::println("Failed to open module file: {}", mod);
+    return;
+  }
+  file.seekg(g_embedded_config.data_offset, std::ios::beg);
+  std::vector<char> data(g_embedded_config.data_size);
+  file.read(data.data(), g_embedded_config.data_size);
+  auto json_str = std::string(data.data(), g_embedded_config.data_size);
+  logger::println("Embedded config offset: {}, size: {}, JSON: {}",
+                  g_embedded_config.data_offset, g_embedded_config.data_size,
+                  json_str);
+#pragma optimize("", on)
+  if (auto res = rfl::json::read<EmbeddedConfigData>(json_str)) {
     gumjs_hook_manager = std::make_unique<GumJSHookManager>();
 
     auto config = res.value();
     std::string js_content;
-    if (config.type == EmbeddedConfigData::Mode::EmbeddedJs) {
+    if (config.mode == EmbeddedConfigData::Mode::EmbedJs) {
       if (config.js_content) {
         js_content = *config.js_content;
         gumjs_hook_manager->start_js_thread(js_content);
@@ -251,11 +265,12 @@ void _main() {
       }
     } else {
       logger::println("Unsupported embedded config mode: {}",
-                      static_cast<int32_t>(config.type));
+                      static_cast<int32_t>(config.mode));
       return;
     }
   } else {
-    logger::println("Failed to parse embedded config data: {}", res.error().what());
+    logger::println("Failed to parse embedded config data: {}",
+                    res.error().what());
     return;
   }
 }

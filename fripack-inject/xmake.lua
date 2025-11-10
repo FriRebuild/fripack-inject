@@ -9,8 +9,6 @@ end
 includes("./deps/frida-gumjs-devkit.lua")
 add_requires("fmt", "frida-gumjs-devkit", "xz", "reflect-cpp")
 
-set_policy("build.optimization.lto", true)
-
 target("fripack-inject")
     set_kind("shared")
     add_files("src/**.cc")
