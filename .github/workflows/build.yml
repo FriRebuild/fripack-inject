@@ -109,7 +109,7 @@ jobs:
           - platform: android
             arch: android-arm
             setup_ndk: true
-            xmake_arch: armeabi
+            xmake_arch: armeabi-v7a
           - platform: android
             arch: android-arm64
             setup_ndk: true
@@ -372,7 +372,7 @@ jobs:
           mkdir ./fripack-inject/frida-gumjs-devkit/
           cp ./frida/build/subprojects/frida-gum/bindings/gumjs/devkit/* ./fripack-inject/frida-gumjs-devkit/
           cd ./fripack-inject
-          xmake f -a ${{ matrix.xmake_arch }} -y -v
+          xmake f -a ${{ matrix.xmake_arch }} -y -v --toolchain=clang-cl
           xmake -vD -y
       
       - name: Upload fripack-inject for ${{ matrix.arch }}

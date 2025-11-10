@@ -3,7 +3,7 @@ set_version("0.1.0")
 add_rules("plugin.compile_commands.autoupdate", {outputdir = "build"})
 
 includes("./deps/frida-gumjs-devkit.lua")
-add_requires("fmt", "frida-gumjs-devkit")
+add_requires("fmt", "frida-gumjs-devkit", "xz")
 
 set_policy("build.optimization.lto", true)
 

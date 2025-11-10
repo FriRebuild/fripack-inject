@@ -1,5 +1,6 @@
 #include <chrono>
 #include <condition_variable>
+#include <cstdint>
 #include <fstream>
 #include <future>
 #include <memory>
@@ -52,7 +53,23 @@ void println(fmt::format_string<Args...> format, Args &&...args) {
 }
 } // namespace logger
 
+#pragma pack(push, 1)
+struct EmbeddedConfig {
+  int32_t magic1 = 0x0d000721;
+  int32_t magic2 = 0x1f8a4e2b;
+  int32_t version = 1;
 
+  int32_t data_size = 0;
+  int32_t data_offset = 0; // Offset from the start of this struct to data.
+  bool data_xz = false; // Whether the data is compressed with xz.
+};
+
+struct EmbeddedConfigData {
+
+};
+#pragma pack(pop)
+
+static EmbeddedConfig g_embedded_config{};
 
 class GumJSHookManager {
 private:
