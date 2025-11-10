@@ -257,7 +257,7 @@ jobs:
         else
           xmake f -a ${{ matrix.xmake_arch }} -y -p linux -v
         fi
-        xmake -vD
+        xmake -vD -y
         cp ./build/*/*/*/*.so ./
     - name: Upload fripack-inject for ${{ matrix.arch }}
       uses: actions/upload-release-asset@v1.0.2
@@ -373,7 +373,7 @@ jobs:
           cp ./frida/build/subprojects/frida-gum/bindings/gumjs/devkit/* ./fripack-inject/frida-gumjs-devkit/
           cd ./fripack-inject
           xmake f -a ${{ matrix.xmake_arch }} -y -v
-          xmake -vD
+          xmake -vD -y
       
       - name: Upload fripack-inject for ${{ matrix.arch }}
         uses: actions/upload-release-asset@v1.0.2
