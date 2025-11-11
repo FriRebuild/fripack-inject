@@ -279,7 +279,6 @@ jobs:
             pkg: mingw-w64-x86_64-gcc
             arch: x86_64
             xmake_arch: x64
-      fail-fast: false
     runs-on: windows-2022
     steps:
       - name: Check out repo
