@@ -255,7 +255,7 @@ jobs:
           xmake f -a ${{ matrix.xmake_arch }} -y -p linux -v
         fi
         xmake -vD -y
-        cp ./build/*/*/*/*.so ./
+        xmake l os.cp build/**.dll ./
     - name: Upload fripack-inject for ${{ matrix.arch }}
       uses: actions/upload-release-asset@v1.0.2
       env:
@@ -371,14 +371,13 @@ jobs:
           cd ./fripack-inject
           xmake f --plat=windows -a ${{ matrix.xmake_arch }} -y -v --toolchain=clang-cl
           xmake b -vD -y
-          cp .\build\*\*\*\*.so ./
-      
+          xmake l os.cp build/**.dll ./
       - name: Upload fripack-inject for ${{ matrix.arch }}
         uses: actions/upload-release-asset@v1.0.2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: '${{ steps.checkReleaseVersion.outputs.upload_url }}'
-          asset_path: ./fripack-inject.dll
+          asset_path: ${{ github.workspace }}/fripack-inject/fripack-inject.dll
           asset_name: 'fripack-inject-${{ steps.checkReleaseVersion.outputs.version }}-windows-${{ matrix.arch }}.dll'
           asset_content_type: application/octet-stream
