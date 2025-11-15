@@ -3,7 +3,7 @@
 
 #include <frida-gumjs.h>
 
-#ifdef __ANDROID__
+#if defined(__ANDROID__) && (defined(__aarch64__) || defined(__arm__))
 #include <dlfcn.h>
 #include <fcntl.h>
 #include <link.h>
@@ -13,11 +13,9 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#elif defined(_WIN32)
-#endif
 namespace fripack::hooks {
 void init() {
-#ifdef __ANDROID__
+
   if (auto errn = shadowhook_init(SHADOWHOOK_MODE_SHARED, false)) {
     logger::println("Shadowhook init failed: {}", shadowhook_to_errmsg(errn));
     return;
@@ -29,7 +27,7 @@ void init() {
       reinterpret_cast<void *>(+[](const gchar *filename, gboolean writable,
                                    GError **error) -> GMappedFile * {
         std::string fname = filename ? filename : "(null)";
-        if (fname.contains("/system/bin/linker")) {
+        if (fname.starts_with("/apex/com.android.runtime/bin/linker")) {
           logger::println("[Shadowhook] g_mapped_file_new called:\n");
           logger::println("  filename: {}", filename ? filename : "(null)");
           logger::println("  writable: {}", writable ? "true" : "false");
@@ -41,9 +39,7 @@ void init() {
             gint ref_count;
             gboolean is_custom_buffer;
           } CustomMappedFile;
-          return (decltype (&g_mapped_file_new)(orig_g_mapped_file_new))(
-              filename, writable, error);
-
+          
           logger::println("  [INTERCEPT] Replacing mmap with traditional read");
 
           int fd = open(filename, writable ? O_RDWR : O_RDONLY);
@@ -101,6 +97,11 @@ void init() {
         }
       }),
       &orig_g_mapped_file_new);
-#endif
 }
+
 } // namespace fripack::hooks
+#else
+namespace fripack::hooks {
+void init() {}
+} // namespace fripack::hooks
+#endif

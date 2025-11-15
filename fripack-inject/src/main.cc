@@ -8,6 +8,8 @@
 #include <string>
 #include <thread>
 #include <vector>
+#include <filesystem>
+#include <atomic>
 
 #include "logger.h"
 
@@ -16,6 +18,7 @@
 #include <jni.h>
 #elif defined(_WIN32)
 #include <windows.h>
+#include <fileapi.h>
 #endif
 
 #include "frida-gumjs.h"
@@ -29,6 +32,7 @@ namespace fripack {
 class GumJSHookManager {
 private:
   std::unique_ptr<std::thread> hook_thread_;
+  std::unique_ptr<std::thread> watch_thread_;
 
   GumScriptBackend *backend_ = nullptr;
   GCancellable *cancellable_ = nullptr;
@@ -37,6 +41,9 @@ private:
   GMainContext *context_ = nullptr;
   GMainLoop *loop_ = nullptr;
   bool initialized_ = false;
+  std::atomic<bool> should_stop_watching_{false};
+  std::string watch_path_;
+  std::filesystem::file_time_type last_write_time_;
 
 public:
   GumJSHookManager() = default;
@@ -96,7 +103,7 @@ public:
           gum_script_backend_create_sync(backend_, "script", js_content.data(),
                                          nullptr, cancellable_, &error_);
       logger::println("[*] Created Gum Script");
-      // return;
+
       if (error_) {
         throw std::runtime_error(
             fmt::format("Failed to create script: {}", error_->message));
@@ -117,7 +124,98 @@ public:
     return init_promise;
   }
 
+  std::string read_file_content(const std::string& filepath) {
+    std::ifstream file(filepath);
+    if (!file.is_open()) {
+      logger::println("Failed to open file: {}", filepath);
+      return "";
+    }
+    
+    std::string content((std::istreambuf_iterator<char>(file)),
+                        std::istreambuf_iterator<char>());
+    return content;
+  }
+
+  void reload_script(const std::string& new_content) {
+    if (!script_) {
+      logger::println("No script to reload");
+      return;
+    }
+
+    logger::println("[*] Reloading script with new content");
+    
+    // Unload the old script
+    gum_script_unload_sync(script_, cancellable_);
+    
+    // Create new script with updated content
+    GumScript *new_script = gum_script_backend_create_sync(
+        backend_, "script", new_content.data(), nullptr, cancellable_, &error_);
+    
+    if (error_) {
+      logger::println("Failed to create new script: {}", error_->message);
+      g_error_free(error_);
+      error_ = nullptr;
+      return;
+    }
+
+    // Clean up old script
+    g_object_unref(script_);
+    
+    // Set up new script
+    script_ = new_script;
+    gum_script_set_message_handler(script_, on_message, nullptr, nullptr);
+    gum_script_load_sync(script_, cancellable_);
+    
+    logger::println("[*] Script reloaded successfully");
+  }
+
+  void start_file_watcher(const std::string& watch_path) {
+    watch_path_ = watch_path;
+    should_stop_watching_ = false;
+    
+    // Get initial file write time
+    try {
+      last_write_time_ = std::filesystem::last_write_time(watch_path_);
+    } catch (const std::exception& e) {
+      logger::println("Failed to get initial file time: {}", e.what());
+      return;
+    }
+
+    watch_thread_ = std::make_unique<std::thread>([this]() {
+      logger::println("[*] Started watching file: {}", watch_path_);
+      
+      while (!should_stop_watching_) {
+        try {
+          auto current_write_time = std::filesystem::last_write_time(watch_path_);
+          
+          if (current_write_time != last_write_time_) {
+            logger::println("[*] File change detected, reloading...");
+            last_write_time_ = current_write_time;
+            
+            std::string new_content = read_file_content(watch_path_);
+            if (!new_content.empty()) {
+              reload_script(new_content);
+            }
+          }
+        } catch (const std::exception& e) {
+          logger::println("Error watching file: {}", e.what());
+        }
+        
+        // Check every 500ms
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+      }
+      
+      logger::println("[*] File watcher stopped");
+    });
+  }
+
   void stop() {
+    should_stop_watching_ = true;
+    
+    if (watch_thread_ && watch_thread_->joinable()) {
+      watch_thread_->join();
+    }
+    
     if (loop_) {
       g_main_loop_quit(loop_);
     }
@@ -166,12 +264,28 @@ void _fi_main() {
 
       gumjs_hook_manager = new GumJSHookManager();
       std::string js_content;
+      
       if (config.mode == config::EmbeddedConfigData::Mode::EmbedJs) {
         if (config.js_content) {
           js_content = *config.js_content;
           gumjs_hook_manager->start_js_thread(js_content);
         } else {
-          logger::println("No JS content or filepath provided");
+          logger::println("No JS content provided for EmbedJs mode");
+          return;
+        }
+      } else if (config.mode == config::EmbeddedConfigData::Mode::WatchPath) {
+        if (config.watch_path) {
+          js_content = gumjs_hook_manager->read_file_content(*config.watch_path);
+          if (js_content.empty()) {
+            logger::println("Failed to read initial JS content from: {}", *config.watch_path);
+            return;
+          }
+          
+          auto init_promise = gumjs_hook_manager->start_js_thread(js_content);
+
+          gumjs_hook_manager->start_file_watcher(*config.watch_path);
+        } else {
+          logger::println("No watch path provided for WatchPath mode");
           return;
         }
       } else {
