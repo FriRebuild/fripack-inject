@@ -9,7 +9,7 @@ end
 includes("./deps/frida-gumjs-devkit.lua")
 add_requires("fmt", "frida-gumjs-devkit", "xz", "reflect-cpp")
 
-local should_hook = is_plat("android") and (is_arch("arm64-v8a") or is_arch("arm"))
+local should_hook = is_plat("android") and (is_arch("arm64-v8a") or is_arch("armeabi-v7a"))
 if should_hook then
     add_requires("shadowhook v1.0.10")
 end
