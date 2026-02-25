@@ -8,7 +8,7 @@ Subject: [PATCH 9/9] Florida: memfd-name-jit-cache
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/lib/base/linux.vala b/lib/base/linux.vala
-index 9da2152c..b133bd37 100644
+index 02ad955a..90ba9513 100644
 --- a/lib/base/linux.vala
 +++ b/lib/base/linux.vala
 @@ -101,7 +101,7 @@ namespace Frida {
