@@ -177,7 +177,14 @@ jobs:
           real=$(realpath $path)
           echo "Apply patches in $real to frida/subprojects/$name"
           cd subprojects/$name
-          git am ../../../patches/$name/*.patch
+          for file in $(ls ../../../patches/$name/ | sort); do
+            fullpath="../../../patches/$name/$file"
+            if [[ "$file" == *.patch ]]; then
+              git am "$fullpath"
+            elif [[ "$file" == *.js ]]; then
+              node "$fullpath"
+            fi
+          done
           cd ../..
           echo $i
         done
