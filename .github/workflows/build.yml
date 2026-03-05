@@ -157,6 +157,12 @@ jobs:
         sudo gem install fpm -v 1.11.0 --no-document
         python3 -m pip install lief graphlib
 
+    - name: Install Zig
+      if: matrix.platform == 'linux'
+      uses: mlugg/setup-zig@v2
+      with:
+        version: 0.13.0
+
     - name: Set Android NDK environment
       if: matrix.setup_ndk
       run: |
@@ -259,7 +265,7 @@ jobs:
         if [ "$use_ndk" = "true" ]; then
           xmake f -a ${{ matrix.xmake_arch }} -y -p android -v
         else
-          xmake f -a ${{ matrix.xmake_arch }} -y -p linux -v
+          xmake f -a ${{ matrix.xmake_arch }} -y -p linux --toolchain=zig -v
         fi
         xmake -vD -y
         xmake l os.cp build/**.so ./

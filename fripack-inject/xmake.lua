@@ -4,6 +4,12 @@ add_rules("plugin.compile_commands.autoupdate", {outputdir = "build"})
 
 if is_plat("windows") then
     set_runtimes("MT")
+elseif is_plat("linux") then
+    set_toolchains("zig")
+    -- target glibc 2.17 (CentOS 7 / RHEL 7 baseline) for maximum compatibility
+    add_cxxflags("-target x86_64-linux-gnu.2.17")
+    add_cflags("-target x86_64-linux-gnu.2.17")
+    add_ldflags("-target x86_64-linux-gnu.2.17")
 end
 
 includes("./deps/frida-gumjs-devkit.lua")
