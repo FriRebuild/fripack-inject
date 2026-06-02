@@ -443,3 +443,130 @@ jobs:
           asset_path: ${{ github.workspace }}/fripack-inject/fripack-inject.dll
           asset_name: 'fripack-inject-${{ steps.checkReleaseVersion.outputs.version }}-windows-${{ matrix.arch }}.dll'
           asset_content_type: application/octet-stream
+
+  build-ios:
+    runs-on: macos-latest
+    needs: [check_version, create_release]
+    if: needs.check_version.outputs.ALREADY_RELEASE != '1'
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - uses: actions/setup-node@v3
+      with:
+        node-version: 18
+
+    - name: Set up Python 3.9
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.9
+
+    - name: Install dependencies
+      run: |
+        pip3 install lief graphlib requests setuptools
+
+    - name: Build Frida for ios-arm64
+      shell: bash
+      run: |
+        git config --global user.name "GitHub Actions"
+        git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+        git clone --recurse-submodules https://github.com/frida/frida
+        cd frida
+        for path in ../patches/*
+        do
+          name=$(basename $path)
+          real=$(realpath $path)
+          echo "Apply patches in $real to frida/subprojects/$name"
+          cd subprojects/$name
+          for file in $(ls ../../../patches/$name/ | sort); do
+            fullpath="../../../patches/$name/$file"
+            if [[ "$file" == *.patch ]]; then
+              git am "$fullpath"
+            elif [[ "$file" == *.js ]]; then
+              node "$fullpath"
+            fi
+          done
+          cd ../..
+        done
+        cd ..
+
+        mkdir build-ios-arm64
+        cd build-ios-arm64
+        ../frida/configure --prefix=./installdir --host=ios-arm64 -- -Dfrida-gum:devkits=gum,gumjs -Dfrida-gum:v8=disabled -Dfrida-gum:database=disabled -Dfrida-gum:tests=disabled -Dfrida-core:compiler_backend=enabled -Dfrida-core:devkits=core
+        make
+        cd ..
+
+    - name: Split Repository Name
+      id: split_name
+      run: |
+        repo_name=${{ github.repository }}
+        IFS='/' read -ra repo_parts <<< "$repo_name"
+        echo "owner=${repo_parts[0]}" >> $GITHUB_OUTPUT
+        echo "repo=${repo_parts[1]}" >> $GITHUB_OUTPUT
+
+    - name: Check release version
+      id: checkReleaseVersion
+      uses: actions/github-script@v3
+      with:
+        github-token: ${{secrets.GITHUB_TOKEN}}
+        script: |
+          try {
+            const releaseVersion = '${{ needs.check_version.outputs.FRIDA_VERSION }}'
+            const releaseResponse = await github.repos.getReleaseByTag({
+              owner: '${{ steps.split_name.outputs.owner }}',
+              repo: '${{ steps.split_name.outputs.repo }}',
+              tag: releaseVersion
+            })
+            const {
+              data: { id: releaseId, html_url: htmlUrl, upload_url: uploadUrl }
+            } = releaseResponse;
+            core.setOutput('id', releaseId);
+            core.setOutput('html_url', htmlUrl);
+            core.setOutput('upload_url', uploadUrl);
+            core.setOutput('version', releaseVersion);
+          } catch (e) {
+            core.setFailed(e.message);
+          }
+
+    - name: Package and compress gumjs folder for ios-arm64
+      shell: bash
+      run: |
+        cp build-ios-arm64/subprojects/frida-gum/gum/gumenumtypes.h build-ios-arm64/subprojects/frida-gum/bindings/gumjs/devkit/gumenumtypes.h
+        cd build-ios-arm64/subprojects/frida-gum/bindings/gumjs/devkit
+        zip -9 -r ./gumjs-ios-arm64.zip . && cd -
+
+    - name: Upload gumjs for ios-arm64
+      uses: actions/upload-release-asset@v1.0.2
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: '${{ steps.checkReleaseVersion.outputs.upload_url }}'
+        asset_path: '${{ github.workspace }}/build-ios-arm64/subprojects/frida-gum/bindings/gumjs/devkit/gumjs-ios-arm64.zip'
+        asset_name: 'gumjs-devkit-${{ needs.check_version.outputs.FRIDA_VERSION }}-ios-arm64.zip'
+        asset_content_type: application/zip
+
+    - uses: xmake-io/github-action-setup-xmake@v1
+      with:
+        xmake-version: 3.0.4
+        package-cache: false
+
+    - name: Build xmake fripack-inject for ios-arm64
+      shell: bash
+      run: |
+        mkdir -p ./fripack-inject/frida-gumjs-devkit/
+        cp ./build-ios-arm64/subprojects/frida-gum/bindings/gumjs/devkit/* ./fripack-inject/frida-gumjs-devkit/
+        cd ./fripack-inject
+        xmake f -p iphoneos -a arm64 -y -v
+        xmake -vD -y
+        find build -name "*.dylib" -exec cp {} ./ \;
+
+    - name: Upload fripack-inject for ios-arm64
+      uses: actions/upload-release-asset@v1.0.2
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: '${{ steps.checkReleaseVersion.outputs.upload_url }}'
+        asset_path: ${{ github.workspace }}/fripack-inject/libfripack-inject.dylib
+        asset_name: 'fripack-inject-${{ steps.checkReleaseVersion.outputs.version }}-ios-arm64.dylib'
+        asset_content_type: application/octet-stream
