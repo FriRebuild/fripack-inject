@@ -39,5 +39,6 @@ target("fripack-inject")
         add_defines("NOMINMAX", "WIN32_LEAN_AND_MEAN")
         add_syslinks("ole32", "user32", "advapi32", "shell32")
     elseif is_plat("iphoneos") then
-        add_frameworks("Foundation")
+        add_frameworks("Foundation", "CoreFoundation", "Security")
+        set_targetminver("16.0")
     end
