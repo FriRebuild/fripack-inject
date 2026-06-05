@@ -478,6 +478,8 @@ jobs:
 
     - name: Build Frida for ios-arm64
       shell: bash
+      env:
+        IOS_CERTID: "-"
       run: |
         git config --global user.name "GitHub Actions"
         git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
