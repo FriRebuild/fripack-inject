@@ -15,7 +15,7 @@ package("frida-gumjs-devkit")
             local content = io.readfile(example_file)
             local extra = content:match("%-lfrida%-gumjs%s+(.-)%s*\n%s*%*")
             if extra and extra ~= "" then
-                io.writefile(package:installdir("lib", "frida-gumjs-ldflags"), extra)
+                io.writefile(package:installdir("lib") .. "/frida-gumjs-ldflags", extra)
             end
         end
     end)
@@ -23,7 +23,7 @@ package("frida-gumjs-devkit")
     on_load(function (package)
         package:add("links", "frida-gumjs")
 
-        local ldflags_file = package:installdir("lib", "frida-gumjs-ldflags")
+        local ldflags_file = package:installdir("lib") .. "/frida-gumjs-ldflags"
         if os.isfile(ldflags_file) then
             local content = io.readfile(ldflags_file)
             for flag in content:gmatch("%S+") do
