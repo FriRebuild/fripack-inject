@@ -10,7 +10,8 @@ on:
 jobs: 
   check_version:
     runs-on: ubuntu-22.04
-
+    permissions:
+      contents: write
     outputs:
       FRIDA_VERSION: ${{ steps.pullFridaLatestRelease.outputs.FRIDA_VERSION }}
       ALREADY_RELEASE: ${{ steps.checkReleaseVersion.outputs.ALREADY_RELEASE }}
@@ -101,6 +102,8 @@ jobs:
   build-linux-android:
     runs-on: ubuntu-22.04
     needs: [check_version, create_release]
+    permissions:
+      contents: write
     strategy:
       matrix:
         include:
@@ -294,6 +297,8 @@ jobs:
             arch: x86_64
             xmake_arch: x64
     runs-on: windows-2022
+    permissions:
+      contents: write
     steps:
       - name: Check out repo
         uses: actions/checkout@v4
@@ -390,6 +395,8 @@ jobs:
             xmake_arch: x64
       fail-fast: false
     runs-on: windows-2022
+    permissions:
+      contents: write
     steps:
       - name: Check out repo
         uses: actions/checkout@v4
@@ -449,7 +456,8 @@ jobs:
     runs-on: macos-latest
     needs: [check_version, create_release]
     if: needs.check_version.outputs.ALREADY_RELEASE != '1'
-
+    permissions:
+      contents: write
     steps:
     - uses: actions/checkout@v3
     - uses: actions/setup-go@v6
