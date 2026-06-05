@@ -40,4 +40,6 @@ target("fripack-inject")
         add_syslinks("ole32", "user32", "advapi32", "shell32")
     elseif is_plat("iphoneos") then
         add_frameworks("Foundation", "CoreFoundation", "Security")
+        -- allow symbols resolved at injection time from the host process
+        add_ldflags("-Wl,-undefined,dynamic_lookup", {force = true})
     end
