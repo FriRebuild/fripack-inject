@@ -38,4 +38,9 @@ target("fripack-inject")
     elseif is_plat("windows") then
         add_defines("NOMINMAX", "WIN32_LEAN_AND_MEAN")
         add_syslinks("ole32", "user32", "advapi32", "shell32")
+    elseif is_plat("iphoneos") then
+        add_frameworks("Foundation", "CoreFoundation", "Security")
+        add_syslinks("resolv")
+        -- allow symbols resolved at injection time from the host process
+        add_ldflags("-Wl,-undefined,dynamic_lookup", {force = true})
     end
